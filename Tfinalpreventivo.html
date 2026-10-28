@@ -132,7 +132,7 @@
             overflow: hidden; background: #0f172a; position: relative;
         }
         .preview-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .preview-label { position: absolute; bottom: 5px; right: 5px; font-size: 9px; background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 4px; color: white; }
+        .preview-label { position: absolute; bottom: 5px; right: 5px; font-size: 9px; background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 4px; color: white; pointer-events: none;}
     </style>
 </head>
 <body>
@@ -224,7 +224,9 @@
 
             <div class="preview-container" id="imagePreviewContainer">
                 <span id="noImageText" style="font-size:10px; color:var(--text-muted)">Sin imagen seleccionada</span>
-                <img id="imgVisualizer" src="" style="display:none;">
+                <a href="" id="imgVisualizerLink" target="_blank" style="display:none; width:100%; height:100%; justify-content:center; align-items:center;">
+                    <img id="imgVisualizer" src="" style="cursor:pointer;" title="Clic para ver en grande">
+                </a>
                 <span class="preview-label">VISTA PREVIA</span>
             </div>
 
@@ -240,7 +242,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
-    const GAPP_URL = ""; 
+    const GAPP_URL = "https://script.google.com/macros/s/AKfycbxy64zbNjXwLGQ3CpksPYrU7iNAR68IIbruosrAOqp_UJxBD5bDFujPnD3Tx3eCXXsY/exec"; 
 
     let datos = [];
     let filaActualIdx = null; 
@@ -261,10 +263,15 @@
         document.querySelectorAll('#panelEdicion input, #panelEdicion textarea').forEach(el => el.value = "");
         document.getElementById("m_cat").innerHTML = CATS.map(c => `<option value="${c}">${c}</option>`).join("");
         document.getElementById("m_foto").value = "";
+        
         // Reset visor
-        document.getElementById("imgVisualizer").style.display = "none";
-        document.getElementById("imgVisualizer").src = "";
-        document.getElementById("noImageText").style.display = "block";
+        const img = document.getElementById("imgVisualizer");
+        const link = document.getElementById("imgVisualizerLink");
+        const txt = document.getElementById("noImageText");
+        img.src = "";
+        link.href = "";
+        link.style.display = "none";
+        txt.style.display = "block";
     }
 
     function actualizarAviso(tipo, mensaje) {
@@ -367,19 +374,45 @@
         document.getElementById("m_cie").value = d.CIERRE;
         document.getElementById("m_foto").value = "";
 
-        // VISUALIZAR IMAGEN
         const img = document.getElementById("imgVisualizer");
+        const link = document.getElementById("imgVisualizerLink");
         const txt = document.getElementById("noImageText");
-        if(d.IMAGEN && d.IMAGEN.startsWith("http")) {
-            img.src = d.IMAGEN;
-            img.style.display = "block";
-            txt.style.display = "none";
+
+        if(d.IMAGEN && d.IMAGEN.includes("drive.google.com")) {
+            let linkLimpio = d.IMAGEN.replace(/\s+/g, ''); 
+            const match = linkLimpio.match(/\/d\/(.+?)\//);
+            if (match && match[1]) {
+                const id = match[1];
+                img.src = `https://lh3.googleusercontent.com/d/${id}`;
+                link.href = linkLimpio; // Link original para abrir en pestaña
+                link.style.display = "flex";
+                txt.style.display = "none";
+            }
         } else {
-            img.style.display = "none";
+            link.style.display = "none";
             img.src = "";
             txt.style.display = "block";
-        }
+        }    
     };
+
+    // ESCUCHADOR PARA PREVISUALIZAR ARCHIVO LOCAL ANTES DE SUBIR
+    document.getElementById("m_foto").addEventListener("change", function(event) {
+        const file = event.target.files[0];
+        const img = document.getElementById("imgVisualizer");
+        const link = document.getElementById("imgVisualizerLink");
+        const txt = document.getElementById("noImageText");
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img.src = e.target.result;
+                link.href = "#"; // No hay link de Drive todavía
+                link.style.display = "flex";
+                txt.style.display = "none";
+            }
+            reader.readAsDataURL(file);
+        }
+    });
 
     window.prepararGuardado = function() {
         const file = document.getElementById("m_foto").files[0];
