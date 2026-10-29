@@ -480,7 +480,7 @@
     // --- LÓGICA TÉCNICOS ---
     async function cargarTecnicos(mes) {
         try {
-            const res = await fetch(`${WEB_APP_URL}?mes=${mes}&nocache=${Date.now()}`);
+            const res = await fetch(`${WEB_APP_URL}?mes=${encodeURIComponent(mes)}&nocache=${Date.now()}`);
             const filas = await res.json();
             if (filas && filas.length > 1) {
                 procesarLogicaTecnicos(filas.slice(1), mes);
@@ -611,7 +611,7 @@
         });
     }
 
-    // --- LÓGICA PREVENTIVOS (ACTUALIZADA) ---
+    // --- LÓGICA PREVENTIVOS ---
     async function cargarPreventivos() {
         try {
             const res = await fetch(`${PREV_APP_URL}?nocache=${Date.now()}`);
