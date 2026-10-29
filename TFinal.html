@@ -1,4 +1,4 @@
-html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -360,7 +360,7 @@ html>
 
 <script>
     const CLAVE_ACCESO = "Tpractico";
-    const WEB_APP_URL   = "https://script.google.com/macros/s/AKfycbx5m8fWCzjtcby-TUF7OcWscU4Sq9KNMzMbi6XukCUfrpGeEoo5-3q85538K8zzEL1T/exec";
+    const WEB_APP_URL  = "https://script.google.com/macros/s/AKfycbx5m8fWCzjtcby-TUF7OcWscU4Sq9KNMzMbi6XukCUfrpGeEoo5-3q85538K8zzEL1T/exec";
     const PREV_APP_URL = "https://coriajavieragustin-cpu.github.io/connectojc-d/Tfinalpreventivo.html";
     const TK_APP_URL   = "https://script.google.com/macros/s/AKfycbxsOZnTYKCVImHEJoxsnTVUgg4axpRlCtpDwGFyoJlkSaujZtQbJ_vHww3GISzTPNq3/exec";
     const BAT_APP_URL  = "https://script.google.com/macros/s/AKfycbxyxgHUoViaze-YefxFpydJJ1YWo3XdOINrIuwTDEH_4i3HLt7KFHWnH28YoQfCY9d9/exec";
@@ -611,29 +611,57 @@ html>
         });
     }
 
-    // --- LÓGICA PREVENTIVOS ---
+    // --- LÓGICA PREVENTIVOS (ACTUALIZADA) ---
     async function cargarPreventivos() {
         try {
             const res = await fetch(`${PREV_APP_URL}?nocache=${Date.now()}`);
             const data = await res.json();
-            let stats = { tot: data.length, fin: 0, pen: 0, proc: 0 };
+            
+            let arrayDatos = [];
+            if (Array.isArray(data)) {
+                arrayDatos = data;
+            } else if (data && Array.isArray(data.datos)) {
+                arrayDatos = data.datos;
+            } else if (data && Array.isArray(data.data)) {
+                arrayDatos = data.data;
+            } else if (data && typeof data === 'object') {
+                arrayDatos = Object.values(data);
+            }
+
+            let stats = { tot: arrayDatos.length, fin: 0, pen: 0, proc: 0 };
             let zonas = {}, cats = {};
-            data.forEach(d => {
-                const est = (d.ESTADO || "").toString().toLowerCase();
-                if(est.includes("finalizado") || est.includes("fin")) stats.fin++;
-                else if(est.includes("proceso") || est.includes("proc")) stats.proc++;
-                else stats.pen++;
-                const z = d.ZONA || "S/Z"; const c = d.CATEGORIA || "S/C";
-                zonas[z] = (zonas[z] || 0) + 1; cats[c] = (cats[c] || 0) + 1;
+
+            arrayDatos.forEach(d => {
+                const estadoVal = d.ESTADO || d.estado || d.Estado || "";
+                const zonaVal = d.ZONA || d.zona || d.Zona || "S/Z";
+                const catVal = d.CATEGORIA || d.categoria || d.Categoria || "S/C";
+
+                const est = estadoVal.toString().toLowerCase();
+                
+                if (est.includes("finalizado") || est.includes("fin")) {
+                    stats.fin++;
+                } else if (est.includes("proceso") || est.includes("proc")) {
+                    stats.proc++;
+                } else {
+                    stats.pen++;
+                }
+
+                zonas[zonaVal] = (zonas[zonaVal] || 0) + 1;
+                cats[catVal] = (cats[catVal] || 0) + 1;
             });
+
             document.getElementById('prevTotal').innerText = stats.tot;
             document.getElementById('prevFinalizadas').innerText = stats.fin;
             document.getElementById('prevPendientes').innerText = stats.pen;
             document.getElementById('prevProceso').innerText = stats.proc;
+
             renderBarChart('chartPrevZona', zonas, chartZona, (c) => chartZona = c, "TAREAS POR ZONA");
             renderBarChart('chartPrevCat', cats, chartCat, (c) => chartCat = c, "TAREAS POR CATEGORÍA");
             document.getElementById('timePrev').innerText = obtenerFechaHoraActual();
-        } catch (e) { console.error("Error en Preventivos:", e); }
+        } catch (e) { 
+            console.error("Error en Preventivos:", e); 
+            document.getElementById('prevTotal').innerText = "Err";
+        }
     }
 
     function renderBarChart(id, data, inst, cb, title) {
